@@ -1,8 +1,7 @@
 #pragma once
 #include <dlfcn.h>
-#include "macro.h"
-
+#include <acl/acl.h>
 namespace APIForwarder {
-    cudaError_t call_real_cuda_malloc(void **ptr, size_t size);
-    cudaError_t call_real_cuda_free(void *ptr);
+    aclError call_real_aclrt_malloc_align32(void **ptr, size_t size, aclrtMemMallocPolicy policy);
+    aclError call_real_aclrt_free(void *ptr);
 }

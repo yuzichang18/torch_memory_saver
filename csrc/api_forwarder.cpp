@@ -1,11 +1,11 @@
 #include <iostream>
 #include "api_forwarder.h"
 #include "utils.h"
-#include "macro.h"
 
 namespace APIForwarder {
-    using CudaMallocFunc = cudaError_t (*)(void**, size_t);
-    using CudaFreeFunc = cudaError_t (*)(void*);
+
+    using AclrtMallocFuncAlign32 = aclError (*)(void**, size_t, aclrtMemMallocPolicy);
+    using AclrtFreeFunc = aclError (*)(void*);
 
     static void *check_dlsym(void *value) {
         if (nullptr == value) {
@@ -15,15 +15,15 @@ namespace APIForwarder {
         return value;
     }
 
-    static CudaMallocFunc real_cuda_malloc_ = NULL;
-    static CudaFreeFunc real_cuda_free_ = NULL;
+    static AclrtMallocFuncAlign32 real_aclrt_malloc_align32_ = NULL;
+    static AclrtFreeFunc real_aclrt_free_ = NULL;
 
-    cudaError_t call_real_cuda_malloc(void **ptr, size_t size) {
-        if (C10_UNLIKELY(nullptr == real_cuda_malloc_)) {
-            real_cuda_malloc_ = (CudaMallocFunc) check_dlsym(dlsym(RTLD_NEXT, "cudaMalloc"));
+    aclError call_real_aclrt_malloc_align32(void **ptr, size_t size, aclrtMemMallocPolicy policy) {
+        if (C10_UNLIKELY(nullptr == real_aclrt_malloc_align32_)) {
+            real_aclrt_malloc_align32_ = (AclrtMallocFuncAlign32) check_dlsym(dlsym(RTLD_NEXT, "aclrtMallocAlign32"));
         }
 
-        cudaError_t ret = real_cuda_malloc_(ptr, size);
+        aclError ret = real_aclrt_malloc_align32_(ptr, size, policy);
 
 #ifdef TMS_DEBUG_LOG
         std::cout << "[torch_memory_saver.cpp] cudaMalloc [MODE NORMAL]"
@@ -34,12 +34,12 @@ namespace APIForwarder {
         return ret;
     }
 
-    cudaError_t call_real_cuda_free(void *ptr) {
-        if (C10_UNLIKELY(nullptr == real_cuda_free_)) {
-            real_cuda_free_ = (CudaFreeFunc) check_dlsym(dlsym(RTLD_NEXT, "cudaFree"));
+    aclError call_real_aclrt_free(void *ptr) {
+        if (C10_UNLIKELY(nullptr == real_aclrt_free_)) {
+            real_aclrt_free_ = (AclrtFreeFunc) check_dlsym(dlsym(RTLD_NEXT, "aclrtFree"));
         }
 
-        cudaError_t ret = real_cuda_free_(ptr);
+        aclError ret = real_aclrt_free_(ptr);
 
 #ifdef TMS_DEBUG_LOG
         std::cout << "[torch_memory_saver.cpp] cudaFree [MODE NORMAL]"

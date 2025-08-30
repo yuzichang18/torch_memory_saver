@@ -1,6 +1,6 @@
 import logging
 import sys
-
+import time
 import torch
 
 from torch_memory_saver import torch_memory_saver
@@ -13,21 +13,21 @@ def run(hook_mode: str):
 
     checker = _MemoryChecker()
 
-    torch.cuda.set_device(1)
+    torch.npu.set_device(1)
 
     with torch_memory_saver.region():
-        dev0_a = torch.full((100_000_000,), 10, dtype=torch.uint8, device='cuda:0')
-
+        dev0_a = torch.full((100_000_000,), 10, dtype=torch.uint8, device='npu:0')
+    torch.npu.synchronize()
     checker.check_and_update("alloc dev0_a", min_delta=(80_000_000, 0))
 
     with torch_memory_saver.region():
-        dev1_a = torch.full((100_000_000,), 10, dtype=torch.uint8, device='cuda')
-
+        dev1_a = torch.full((100_000_000,), 10, dtype=torch.uint8, device='npu')
+    torch.npu.synchronize()
     checker.check_and_update("alloc dev1_a", min_delta=(0, 80_000_000))
 
     with torch_memory_saver.region():
-        dev1_b = torch.full((100_000_000,), 10, dtype=torch.uint8, device='cuda:1')
-
+        dev1_b = torch.full((100_000_000,), 10, dtype=torch.uint8, device='npu:1')
+    torch.npu.synchronize()
     checker.check_and_update("alloc dev1_b", min_delta=(0, 80_000_000))
 
     torch_memory_saver.pause()
@@ -52,6 +52,7 @@ class _MemoryChecker:
             (curr_i - prev_i) >= min_delta_i
             for curr_i, prev_i, min_delta_i in zip(curr, self._prev, min_delta, strict=True)
         )
+
         self._prev = curr
 
 
