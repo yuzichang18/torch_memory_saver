@@ -75,7 +75,7 @@ class TorchMemorySaver:
 
 
 class _TorchMemorySaverImpl:
-    def __init__(self, hook_mode: HookMode = "preload"):
+    def __init__(self, hook_mode: HookMode = "torch"):
         self._hook_mode = hook_mode
         self._hook_util = HookUtilBase.create(hook_mode=hook_mode)
         self._binary_wrapper = BinaryWrapper(path_binary=self._hook_util.get_path_binary())
